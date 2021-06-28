@@ -24,7 +24,7 @@ HTTP implementation to ensure that the response object matches with our other in
 
 ### Workflow
 
-![sequence-diagram]()
+![sequence-diagram](https://github.com/rubyDoomsday/architecture-design-diagram/blob/main/calendarSync/sequence_diagram.png)
 
 ## Work Brief
 
