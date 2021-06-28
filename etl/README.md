@@ -20,7 +20,7 @@ phase” can then be used to work backward and define a phased roll out of the u
 
 ## Workflow Summary
 
-![current-design](architecture-design-diagram/etl/current-design.png)
+![current-design](https://github.com/rubyDoomsday/architecture-design-diagram/blob/main/etl/current-design.png)
 
 - A defined exporter class is initialized with a block of Vendor X record IDs.
 - The exporter queries the DB for the records and any related entities related to them.
@@ -67,11 +67,11 @@ these basic requirements.
 
 ## Kafka Diagram
 
-![kafka-design](architecture-design-diagram/etl/kafka-design.png)
+![kafka-design](https://github.com/rubyDoomsday/architecture-design-diagram/blob/main/etl/kafka-design.png)
 
 ## REST Diagram
 
-![rest-design](architecture-design-diagram/etl/rest-design.png)
+![rest-design](https://github.com/rubyDoomsday/architecture-design-diagram/blob/main/etl/rest-design.png)
 
 # Action Items
 
