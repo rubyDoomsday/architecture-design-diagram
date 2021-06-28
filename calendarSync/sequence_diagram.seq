@@ -1,0 +1,58 @@
+participant View/Client as view
+participant Controller as controller
+participant Service as service
+participant Rest Party as client
+participant Database as db
+participant API as api
+
+note over db
+ The DB is accessed through and
+ managed by our Model layer
+end note
+
+note over service:
+ A Service orchestrates business logic
+ between GrowPath and a Integration/Service
+end note
+
+note over client:
+ A Rest Party sends and normalizes HTTP
+ requests to a 3rd Party API
+end note
+
+view->controller: POST /events, params: event_json
+activate controller
+controller->service: Service.new(user).events.create(event: params)
+activate service
+
+loop Refresh Token
+  service->+client: auth.refresh_token(user_token)
+  client->+api: POST /oauth/refresh_token
+  api->-client: 200 (SUCCESS)
+  client->-service: Return :token
+end # loop
+
+loop Record/Resource Creation
+  service->db: CalendarEvent.new(event_hash) && :event.valid?
+  activate db
+  db->service: Return :event
+  service->client: Party.events.create(:event.for_cronofy))
+  activate client
+  client->+api: POST /events, params: event_json
+Page 2
+  api->-client: 201 (Created) response_json
+  client->service: Return Response.new(response_json)
+  deactivate client
+  note left of service
+    The Service normalizes Response objects
+    to buffer dependency on API data models
+  end note
+  service->service: transform(response_json)
+  service<->db: :event.save!
+  deactivate db
+end # loop
+
+service->controller: Return :event
+deactivate service
+controller->view: Render 200 (Success) @event (ie. @record)
+deactivate controller
