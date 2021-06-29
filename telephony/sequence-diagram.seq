@@ -1,0 +1,66 @@
+participant Caller as caller
+participant Specialist as agent
+participant Twilio as tw
+participant GrowPath as gp
+participant Database as db
+
+loop Enqueue Call
+  caller->+tw: incoming call
+  tw->+gp: POST /api/phone/webhooks/call <xml>@callSID, @from, @to<xml>
+  gp<->db: @call = VoiceCall.create(params)
+  gp<->db: @call.campaign = Campaign.where(phone: to).first
+  gp<->db: @matter = Matter.build_from_call(@call)
+
+  note over gp
+    recipe = Twilio::TwiML::VoiceResponse.new
+    recipe.say(@call.message)
+    recipe.enqueue(name: 'intake')
+  end note
+
+  gp->-tw: 200 Success <xml>recipe<xml>
+  tw-->-caller: "this call may be recorded..."
+  tw->tw: ENQUEUE CALL
+end # loop
+
+loop Processing Queue
+  alt Connect to call
+    agent->+gp: GET /phone/queues/intake/calls
+    gp->+tw: GET /accounts/growpath/queues/123/members
+    tw->-gp: 200 Success []queue_members
+    gp->-agent: RENDER Index queue_members
+
+    note over agent
+      Click first call in queue
+    end note
+
+    agent->+gp: GET /phone/queues/intake/calls/:id
+
+    note over gp
+      recipe = Twilio::TwiML::VoiceResponse.new
+        recipe.dial do |dial|\n  dial.queue('intake', url: 'connect.xml')
+      end
+    end note
+
+    gp<->tw: POST /accounts/growpath/calls <xml>recipe<xml>
+    gp->-agent: RENDER Form @matter
+
+    loop Fill Out Intake
+      agent<-->caller: \"how are things?...\"
+      agent->+gp: PUT /matter/update @params
+      gp<->db: @matter = Matters.find(@params.id).upate(params)
+      gp->-agent: RENDER Form @matter
+    end # loop
+
+    tw->gp: POST /api/phone/webhooks/disconnect
+    note over GP: retrieve and attach recording
+
+  else Timeout/No Agent Available/Full
+    tw->+gp: POST /api/phone/webhooks/voicemail
+    note over gp
+      recipe = Twilio::TwiML::VoiceResponse.new
+      recipe.recording.new
+    end note
+    gp->-tw: 200 Success <xml>recipe<xml>
+    tw<->caller: REDIRECT to /account/growpath/calls/:id/recordings
+  end
+end #loop
